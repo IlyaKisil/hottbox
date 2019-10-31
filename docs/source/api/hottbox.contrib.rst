@@ -7,14 +7,23 @@ Experimental features
     :no-inherited-members:
 
 
-Visualisation
-=============
+.. contents:: Table of Contents
+    :local:
+    :depth: 2
 
-.. automodule:: hottbox.contrib.visualisation
+
+Visualisations with Dash
+========================
+
+
+Visualisations with Jupyter
+===========================
+
+.. automodule:: hottbox.contrib.visualisation.jupyter
     :no-members:
     :no-inherited-members:
 
-.. currentmodule:: hottbox.contrib.visualisation
+.. currentmodule:: hottbox.contrib.visualisation.jupyter
 
 
 Interactive dashboards
