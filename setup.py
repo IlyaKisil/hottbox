@@ -61,6 +61,11 @@ def do_setup():
             'Programming Language :: Python :: 3'
         ],
         keywords=['tensor decompositions', 'machine learning'],
+        entry_points={
+            'console_scripts': [
+                'hottbox-vis = hottbox.contrib.visualisation.dash.run:main',
+            ]
+        },
         install_requires=install_requires(),
         extras_require=extras_require(),
         include_package_data=True,
