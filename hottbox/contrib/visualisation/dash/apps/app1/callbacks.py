@@ -10,15 +10,22 @@ from dash.exceptions import PreventUpdate
 
 
 from hottbox.contrib.visualisation.dash.app import app
+from hottbox.contrib.visualisation.dash.utils import DynamicComponentsID, generate_dropdown_options
 
-# FIXME: get rid of start import
-from hottbox.contrib.visualisation.dash.utils import *
-
-# This is type hints
+# This is for type hints
 from hottbox.core import TensorCPD
 
 
-# TODO: need to generate a lookup table for ids of elements.
+DYNAMIC_ELEMENTS = {
+    "dropdown-select-component": 1,
+    "input-title": 10,
+    "graph": 10,
+}
+MAX_NUMBER_OF_FIGURES = max(DYNAMIC_ELEMENTS.values())
+ID_LOOKUP = DynamicComponentsID(
+    elements=DYNAMIC_ELEMENTS
+)
+
 
 def _convert_to_tensor(data_string):
     data = data_string.encode("utf8").split(b";base64,")[1]
@@ -38,6 +45,7 @@ def read_tensor_file(contents):
         raise PreventUpdate
 
     return contents
+
 
 @app.callback(
     Output('app-1-tensor-cpd-meta', 'children'),
@@ -75,10 +83,10 @@ def create_tensor_visualisation(data):
     elements = _create_vis_controls(tensor_unpickle)
 
     graphs = []
-    for mode_name in tensor_unpickle.mode_names:
+    for i, mode_name in enumerate(tensor_unpickle.mode_names):
         graphs.append(
             dcc.Graph(
-                id=generate_plot_id(mode_name=mode_name),
+                id=ID_LOOKUP.get_by_number(prefix="graph", number=i),
                 figure=_create_figure(
                     data_string=data,
                     title=mode_name
@@ -103,14 +111,14 @@ def create_tensor_visualisation(data):
 def _create_vis_controls(tensor):
     number_of_components = tensor.rank[0]
     dropdown = dcc.Dropdown(
-        id=generate_component_dropdown_id("generic"),
+        id=ID_LOOKUP.get_by_number(prefix="dropdown-select-component"),
         options=generate_dropdown_options(options_list=range(number_of_components)),
         placeholder="Select component to display ..."
     )
     input_list = []
     for i, mode_name in enumerate(tensor.mode_names):
         input_div = dcc.Input(
-            id=generate_title_input_id(mode_name=mode_name),
+            id=ID_LOOKUP.get_by_number(prefix="input-title", number=i),
             type="text",
             persistence=True,
             persistence_type="memory",
@@ -127,23 +135,26 @@ def _create_vis_controls(tensor):
     return controls
 
 
-def _create_figure(title=None, selected_component=None, data_string=None, bla=None):
+def _create_figure(title=None, selected_component=None, data_string=None, id=None):
     figure = {
-        'layout': _create_figure_layout(title=f"Selected component: {selected_component} (for {title})"),
-
+        'layout': _create_figure_layout(title=f"{title}<br>(Selected component {selected_component})"),
     }
     if selected_component is not None:
 
-        mode = int(bla.split("-")[-1])  # Reverse engineer, for which mode we create a figure
+        # This is a hacky way to determine which figure should be update
+        # since, we can't use the same dash element for input and output
+        # within the same callback
+        mode = ID_LOOKUP.get_by_id(prefix="input-title", id=id)
 
         tensor_unpickle: TensorCPD = _convert_to_tensor(data_string)
-        figure['data'] = _create_figure_data(
+        figure['data'] = _create_figure_trace(
             y=tensor_unpickle.fmat[mode][:, selected_component],
             x=[j for j in range(tensor_unpickle.ft_shape[mode])],
             type_='bar'
         )
 
     return figure
+
 
 def _create_figure_layout(title):
     layout = {
@@ -155,11 +166,11 @@ def _create_figure_layout(title):
         'yaxis': {
             'title': "Component feature value"
         },
-
     }
     return layout
 
-def _create_figure_data(x, y, type_):
+
+def _create_figure_trace(x, y, type_):
     if type_ == "line":
         data = [
             go.Scatter(
@@ -177,15 +188,19 @@ def _create_figure_data(x, y, type_):
         ]
     return data
 
-for mode_name in ["mode-0", "mode-1", "mode-2"]:
+
+for fig_number in range(MAX_NUMBER_OF_FIGURES):
+    dropdown_id = ID_LOOKUP.get_by_number(prefix="dropdown-select-component")
+    graph_id = ID_LOOKUP.get_by_number(prefix="graph", number=fig_number)
+    title_id = ID_LOOKUP.get_by_number(prefix="input-title", number=fig_number)
     app.callback(
-        output=Output(generate_plot_id(mode_name=mode_name), 'figure'),
+        output=Output(graph_id, 'figure'),
         inputs=[
-            Input(generate_title_input_id(mode_name=mode_name), 'value'),
-            Input(generate_component_dropdown_id("generic"), 'value')
+            Input(title_id, 'value'),
+            Input(dropdown_id, 'value')
         ],
         state=[
             State('app-1-placeholder-tensor-cpd', 'children'),  # TODO: probably should be an input
-            State(generate_title_input_id(mode_name=mode_name), 'id')
+            State(title_id, 'id')
         ]
     )(_create_figure)

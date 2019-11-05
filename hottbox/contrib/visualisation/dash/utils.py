@@ -1,17 +1,18 @@
-def generate_plot_id(mode_name):
-    return f"graph-{mode_name}"
+class DynamicComponentsID(object):
 
+    def __init__(self, elements):
+        self.ids = dict()
+        for prefix, number in elements.items():
+            self.ids[prefix] = [f"{prefix}-{i}" for i in range(number)]
 
-def generate_title_input_id(mode_name):
-    return f"input-title-{mode_name}"
+    def get_by_number(self, prefix, number=None):
+        if number is None:
+            return self.ids[prefix][0]
+        else:
+            return self.ids[prefix][number]
 
-
-def generate_component_dropdown_id(mode_name):
-    return f"dropdown-component-{mode_name}"
-
-
-def generate_dash_element_id():
-    pass
+    def get_by_id(self, prefix, id):
+        return self.ids[prefix].index(id)
 
 
 def generate_dropdown_options(options_list):
