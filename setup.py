@@ -1,7 +1,22 @@
 import os
 import re
+import sys
+import textwrap
 from setuptools import setup, find_packages
 
+
+if sys.version_info < (3, 6):
+    sys.exit(
+        textwrap.dedent(
+            """
+            ======================================
+            
+            Sorry, HOTTBOX requires Python >= 3.6.
+            
+            ======================================
+            """
+        )
+    )
 
 ROOT = os.path.dirname(__file__)
 VERSION_RE = re.compile(r'''__version__ = ['"]([0-9.]+)['"]''')
@@ -66,6 +81,7 @@ def do_setup():
                 'hottbox-vis = hottbox.contrib.visualisation.dash.run:main',
             ]
         },
+        python_requires='>=3.6',
         install_requires=install_requires(),
         extras_require=extras_require(),
         include_package_data=True,
@@ -73,9 +89,6 @@ def do_setup():
     )
 
     setup(**config)
-
-    print("\nWelcome to HOTTBOX!")
-    print("If any questions please visit documentation page https://hottbox.github.io")
 
 
 if __name__ == "__main__":
